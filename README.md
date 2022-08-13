@@ -118,8 +118,6 @@ kubectl delete -f yamls/webapp.yaml
 
 
 
+#### Screenshot
 
-
-
-
-
+<img src="screen.png" />
