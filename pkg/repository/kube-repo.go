@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"fn-kube-state/pkg/models"
 	"fn-kube-state/pkg/util"
@@ -11,14 +12,15 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/watch"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 type KubeQuery interface {
 	GetPods(ctx context.Context) (models.Pods, error)
 	GetDeploymentByGroup(ctx context.Context, namespace, appGroup string) (models.Deployments, error)
-	Watch(ctx context.Context, messageChan chan string)
+	Watch(ctx context.Context, client *models.Client)
 }
 
 type kubeQuery struct {
@@ -88,35 +90,44 @@ func (m *kubeQuery) GetDeploymentByGroup(ctx context.Context, namespace, appGrou
 	return depList, nil
 }
 
-func (m *kubeQuery) Watch(ctx context.Context, messageChan chan string) {
-	watcher, err := m.client.CoreV1().Pods("default").Watch(ctx, metaV1.ListOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
+func (m *kubeQuery) Watch(ctx context.Context, client *models.Client) {
 
-	for event := range watcher.ResultChan() {
-		svc := event.Object.(*v1.Pod)
-		fmt.Println("Watch.event...")
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(m.client, time.Second*30)
+	svcInformer := kubeInformerFactory.Core().V1().Pods().Informer()
 
-		switch event.Type {
-		case watch.Added:
-			message := fmt.Sprintf("Service %s/%s added", svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
-			fmt.Println(message)
-			if messageChan != nil {
-				messageChan <- message
+	svcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+
+			pod := obj.(*v1.Pod)
+			message := fmt.Sprintf("Service added: %s \n", pod.Name)
+			db := &models.SseMessage{
+				Message: message,
 			}
-		case watch.Modified:
-			message := fmt.Sprintf("Service %s/%s modified \n", svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
-			fmt.Println(message)
-			if messageChan != nil {
-				messageChan <- message
+			client.Events <- db
+		},
+		DeleteFunc: func(obj interface{}) {
+			pod := obj.(*v1.Pod)
+			message := fmt.Sprintf("Service deleted: %s \n", pod.Name)
+			db := &models.SseMessage{
+				Message: message,
 			}
-		case watch.Deleted:
-			message := fmt.Sprintf("Service %s/%s deleted \n", svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
-			fmt.Println(message)
-			if messageChan != nil {
-				messageChan <- message
+			client.Events <- db
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldPod := oldObj.(*v1.Pod)
+			newPod := newObj.(*v1.Pod)
+			message := fmt.Sprintf("Service changes: %s -> %s\n", oldPod.Name, newPod.Name)
+			db := &models.SseMessage{
+				Message: message,
 			}
-		}
+			client.Events <- db
+		},
+	})
+
+	stop := make(chan struct{})
+	defer close(stop)
+	kubeInformerFactory.Start(stop)
+	for {
+		time.Sleep(5 * time.Second)
 	}
 }

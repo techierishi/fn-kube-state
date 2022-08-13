@@ -28,9 +28,9 @@ kubectl cluster-info --context kind-fn-kubestate-cl
 kubectl get nodes
 ```
 
->Add test deployments
+> Add test deployments
 ```bash
-kubectl apply -f services.yaml
+kubectl apply -f task/services.yaml
 ```
 
 > Check the pods

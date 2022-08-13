@@ -15,3 +15,11 @@ type Pod struct {
 }
 
 type Pods []*Pod
+
+type Client struct {
+	Name   string
+	Events chan *SseMessage
+}
+type SseMessage struct {
+	Message string `json:"message"`
+}
