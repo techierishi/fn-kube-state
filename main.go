@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -14,8 +15,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	pods, err := client.CoreV1().Pods("").List(meta_v1.ListOptions{})
+	pods, err := client.CoreV1().Pods("").List(ctx, meta_v1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
