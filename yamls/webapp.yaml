@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: fnkubestate
-        image: techierishi/fn-kube-state:latest
+        image: <username>/fn-kube-state:latest
         ports:
         - containerPort: 8282
         env:
