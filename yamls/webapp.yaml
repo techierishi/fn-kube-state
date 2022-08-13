@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fnkubestate-deployment
+  labels:
+    app: fnkubestate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fnkubestate
+  template:
+    metadata:
+      labels:
+        app: fnkubestate
+    spec:
+      containers:
+      - name: fnkubestate
+        image: techierishi/fn-kube-state:latest
+        ports:
+        - containerPort: 8282
+        env:
+        - name: KUBE_CLIENT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: kubeClient
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fnkubestate-service
+spec:
+  type: ClusterIP
+  selector:
+    app: fnkubestate
+  ports:
+    - protocol: TCP
+      port: 8282
+      targetPort: 8282

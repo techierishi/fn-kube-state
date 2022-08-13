@@ -20,7 +20,7 @@ func main() {
 	srv := handlers.NewServer(dao, ctx)
 
 	server := &http.Server{
-		Addr:    ":8383",
+		Addr:    ":8282",
 		Handler: srv,
 
 		WriteTimeout: 15 * time.Second,
@@ -31,6 +31,5 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("Server started at port " + server.Addr)
-
 
 }

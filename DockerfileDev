@@ -1,0 +1,16 @@
+
+FROM golang:1.19.0-alpine
+ 
+ENV APP_NAME fn-kube-state
+ENV CMD_PATH /cmd/main.go
+ENV KUBE_CLIENT inCluster
+
+COPY . $GOPATH/src/$APP_NAME
+WORKDIR $GOPATH/src/$APP_NAME
+
+EXPOSE 8080
+
+# CMD ["go", "run", "cmd/main.go"]
+ENTRYPOINT ["tail"]
+CMD ["-f","/dev/null"]
+ 
