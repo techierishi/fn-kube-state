@@ -46,3 +46,25 @@ func (s *Server) GetPods() http.HandlerFunc {
 
 	}
 }
+
+func (s *Server) Stream() http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		util.PrepareHeaderForSSE(w)
+
+		defer func() {
+			close(s.messageChan)
+			s.messageChan = nil
+		}()
+
+		flusher, _ := w.(http.Flusher)
+		for {
+			write, err := util.WriteData(w, s.messageChan)
+			if err != nil {
+				log.Println(err)
+			}
+			log.Println(write)
+			flusher.Flush()
+		}
+	}
+}

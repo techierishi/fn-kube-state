@@ -2,19 +2,23 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"fn-kube-state/pkg/models"
 	"fn-kube-state/pkg/util"
 
+	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 )
 
 type KubeQuery interface {
 	GetPods(ctx context.Context) (models.Pods, error)
 	GetDeploymentByGroup(ctx context.Context, namespace, appGroup string) (models.Deployments, error)
+	Watch(ctx context.Context, messageChan chan string)
 }
 
 type kubeQuery struct {
@@ -79,8 +83,40 @@ func (m *kubeQuery) GetDeploymentByGroup(ctx context.Context, namespace, appGrou
 		}
 
 		depList = append(depList, depObj)
-
 	}
 
 	return depList, nil
+}
+
+func (m *kubeQuery) Watch(ctx context.Context, messageChan chan string) {
+	watcher, err := m.client.CoreV1().Pods("default").Watch(ctx, metaV1.ListOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for event := range watcher.ResultChan() {
+		svc := event.Object.(*v1.Pod)
+		fmt.Println("Watch.event...")
+
+		switch event.Type {
+		case watch.Added:
+			message := fmt.Sprintf("Service %s/%s added", svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
+			fmt.Println(message)
+			if messageChan != nil {
+				messageChan <- message
+			}
+		case watch.Modified:
+			message := fmt.Sprintf("Service %s/%s modified \n", svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
+			fmt.Println(message)
+			if messageChan != nil {
+				messageChan <- message
+			}
+		case watch.Deleted:
+			message := fmt.Sprintf("Service %s/%s deleted \n", svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
+			fmt.Println(message)
+			if messageChan != nil {
+				messageChan <- message
+			}
+		}
+	}
 }

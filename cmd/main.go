@@ -1,19 +1,23 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"fn-kube-state/pkg/handlers"
 	"fn-kube-state/pkg/repository"
-	"fn-kube-state/pkg/util"
 )
 
 func main() {
 
+	ctx := context.Background()
+	defer ctx.Done()
+
 	dao := repository.NewDAO()
-	srv := handlers.NewServer(dao)
+	srv := handlers.NewServer(dao, ctx)
 
 	server := &http.Server{
 		Addr:    ":8383",
@@ -22,9 +26,11 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	util.Println("Starting server at port " + server.Addr)
+	fmt.Println("Starting server at port " + server.Addr)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Server started at port " + server.Addr)
+
 
 }
