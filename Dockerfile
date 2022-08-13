@@ -17,6 +17,7 @@ ENV APP_NAME fn-kube-state
 ENV KUBE_CLIENT inCluster
  
 COPY --from=build-env /$APP_NAME .
+COPY ./public /public
  
 EXPOSE 8080
 
