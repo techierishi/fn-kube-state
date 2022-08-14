@@ -5,7 +5,7 @@ A small utility to show the state of k8s cluster
 
 ## Local testing steps (For Mac):
 
-### Cluster preparation
+### Cluster preparation [Skip if already done]
 > Download kind
 
 ```bash
