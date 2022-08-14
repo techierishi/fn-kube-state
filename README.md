@@ -76,6 +76,12 @@ docker push <username>/fn-kube-state
 #### Cluster deployment and usage
 
 ```bash
+
+# Allow internal pods to access cluster api [Warning: NOT IN PROD]
+kubectl create clusterrolebinding serviceaccounts-cluster-admin \
+  --clusterrole=cluster-admin \
+  --group=system:serviceaccounts
+
 kubectl apply -f yamls/config.yaml
 
 # Replace the <username> in yamls/webapp.yaml 
@@ -84,11 +90,6 @@ kubectl apply -f yamls/webapp.yaml
 kubectl get pods
 kubectl describe <pod-name>
 kubectl logs <pod-name>
-
-# Allow internal pods to access cluster api [Warning]
-kubectl create clusterrolebinding serviceaccounts-cluster-admin \
-  --clusterrole=cluster-admin \
-  --group=system:serviceaccounts
 
 # To access the api from host machine
 kubectl port-forward service/fnkubestate-service 8282:8282
